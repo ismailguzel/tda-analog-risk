@@ -1,0 +1,68 @@
+{
+  "baseline_test_methods": [
+    "dtw_window",
+    "euclidean_knn",
+    "fhs_ewma",
+    "fpca_window",
+    "garch_t",
+    "mahalanobis_knn",
+    "random_knn",
+    "regime_hs",
+    "rolling_hs",
+    "window_euclidean_knn"
+  ],
+  "sources": {
+    "baseline_dir": "results/baseline_pipeline",
+    "formal_tests_dir": "results/topology_pipeline/formal_tests",
+    "topology_dir": "results/topology_pipeline"
+  },
+  "test_window": {
+    "forecast_end_date": "2026-04-30",
+    "forecast_start_date": "2015-01-02",
+    "n_test_rows": 54112,
+    "realized_end_date": "2026-05-01"
+  },
+  "topology_run_metadata": {
+    "data_metadata": {
+      "benchmark": "0.6*SPY + 0.4*IEF",
+      "calendar": "SPY trading days",
+      "credit_spread_fallback_first_valid": "2002-07-30",
+      "credit_spread_feature": "BAMLH0A0HYM2 with BAA10Y fallback when the ICE series is unavailable in FRED",
+      "credit_spread_primary_first_valid": "2023-05-02",
+      "fred_fill_rule": "forward-fill to the next SPY trading day",
+      "yahoo_fill_rule": "forward-fill non-benchmark series to the SPY trading calendar"
+    },
+    "finalist_config": {
+      "alpha": 0.0,
+      "feature_mode": "landscape_h1_top3_weighted",
+      "input_mode": "portfolio_only",
+      "k": 1000,
+      "landscape_num_steps": 200,
+      "window_length": 125
+    },
+    "forecast_end_date": "2026-04-30",
+    "forecast_row_count": 68438,
+    "forecast_start_date": "2012-01-03",
+    "panel_end_date": "2026-05-01",
+    "panel_observation_count": 5978,
+    "panel_start_date": "2002-07-30",
+    "pipeline": "topology_pipeline",
+    "realized_end_date": "2026-05-01",
+    "topology_workers_effective": 1,
+    "topology_workers_requested": 8
+  },
+  "topology_test_methods": [
+    "dtw_window",
+    "euclidean_knn",
+    "fhs_ewma",
+    "fpca_window",
+    "garch_t",
+    "mahalanobis_knn",
+    "random_knn",
+    "regime_hs",
+    "rolling_hs",
+    "topology_knn",
+    "topology_placebo_knn",
+    "window_euclidean_knn"
+  ]
+}

@@ -1,0 +1,9 @@
+comparison_group,model_label,source_run,selection_objective,selected_lambda,selected_weight_topology,n_forecasts,mean_var_99,mean_es_975,exceedance_rate_99,exceedance_rate_es_975,mean_fz_style
+full_sample_reference,fhs_fullsample,topology_pipeline,,,,5696,0.016162678465712562,0.01717399351605509,0.014220505617977528,0.01211376404494382,
+full_sample_reference,topology_only_fullsample,topology_pipeline,,,,2848,0.017662411849033204,0.018955391574138468,0.01228932584269663,0.010884831460674158,
+scenario_mixture_coverage_then_fz,fhs_matched_selected_lambda,topology_pipeline,coverage_then_fz,0.94,0.1,2848,0.015942827933332987,0.01699378893214427,0.014396067415730338,0.012640449438202247,
+scenario_mixture_coverage_then_fz,scenario_mixture,scenario_mixture_coverage_then_fz,coverage_then_fz,0.94,0.1,2848,0.01630176668781925,0.017507983762047093,0.011587078651685394,0.010884831460674158,0.017743469667730192
+scenario_mixture_coverage_then_fz,topology_only_matched,topology_pipeline,coverage_then_fz,0.94,0.1,2848,0.017662411849033204,0.018955391574138468,0.01228932584269663,0.010884831460674158,
+scenario_mixture_weighted_combo,fhs_matched_selected_lambda,topology_pipeline,weighted_combo,0.94,0.1,2848,0.015942827933332987,0.01699378893214427,0.014396067415730338,0.012640449438202247,
+scenario_mixture_weighted_combo,scenario_mixture,scenario_mixture_weighted_combo,weighted_combo,0.94,0.1,2848,0.0163021043825543,0.017508579211595047,0.011587078651685394,0.010884831460674158,0.017743901417131128
+scenario_mixture_weighted_combo,topology_only_matched,topology_pipeline,weighted_combo,0.94,0.1,2848,0.017662411849033204,0.018955391574138468,0.01228932584269663,0.010884831460674158,

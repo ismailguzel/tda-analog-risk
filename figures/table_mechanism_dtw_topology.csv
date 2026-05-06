@@ -1,0 +1,4 @@
+selection,window_start,region,dtw_distance,topology_distance,dtw_percentile,topology_percentile
+query,865,query_loop,0.0,0.0,0.0,0.0
+dtw_nn,409,dtw_loop,0.08799180280368372,10.044122067034124,0.13966480446927373,93.71508379888269
+topology_nn,100,topology_loop,0.1282959069308393,4.357450031896971,58.10055865921788,0.13966480446927373

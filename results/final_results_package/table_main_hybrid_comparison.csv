@@ -1,0 +1,4 @@
+display_label,comparison_group,model_label,source_run,selection_objective,selected_lambda,selected_weight_topology,n_forecasts,mean_var_99,mean_es_975,exceedance_rate_99,exceedance_rate_es_975,mean_fz_style
+FHS-EWMA (matched dates),scenario_mixture_coverage_then_fz,fhs_matched_selected_lambda,topology_pipeline,coverage_then_fz,0.94,0.1,2848,0.0159428279333329,0.0169937889321442,0.0143960674157303,0.0126404494382022,
+Topology-FHS scenario mixture,scenario_mixture_coverage_then_fz,scenario_mixture,scenario_mixture_coverage_then_fz,coverage_then_fz,0.94,0.1,2848,0.0163017666878192,0.017507983762047,0.0115870786516853,0.0108848314606741,0.0177434696677301
+Topology only (matched dates),scenario_mixture_coverage_then_fz,topology_only_matched,topology_pipeline,coverage_then_fz,0.94,0.1,2848,0.0176624118490332,0.0189553915741384,0.0122893258426966,0.0108848314606741,
