@@ -1,0 +1,14 @@
+registry_version,family,configuration_id,method,mean_pinball_loss,worst_fold_loss,mean_exceedance_rate,mean_scenarios,runtime_seconds,n_folds,selection_rule
+phase_b2_final_v1,fhs_ewma,fhs_ewma_l094,fhs_ewma,0.00013620184393197147,0.00014651943875916196,0.013248677248677248,2750.8333333333335,1.76782125,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,garch_t,garch_t_w1500_r20,garch_t,0.0001320021717617334,0.000143877372942669,0.009259259259259259,20000.0,1.44672525,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,regime_hs,regime_hs_bins4,regime_hs,0.00013910161509127198,0.00015856743474462946,0.007936507936507936,682.7748677248677,0.4860215419999996,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,rolling_hs,rolling_hs_w500,rolling_hs,0.00015241337822490062,0.00017489529958590984,0.006613756613756613,500.0,0.15777487500000031,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,s_euclidean,s_euclidean_k250,s_euclidean,0.00013556172455074454,0.00014526849016207238,0.006624338624338624,250.0,0.07341875,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,s_mahalanobis,s_mahalanobis_k500,s_mahalanobis,0.00014372443497658442,0.00015612265843833038,0.003968253968253968,500.0,0.0778824999999994,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,topology,topology_l250_k100,topology,0.00014776163586832956,0.0001613188379850759,0.010624338624338625,100.0,71.76756237500001,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,w_dtw,w_dtw_l250_k750,w_dtw,0.00013379378472626335,0.00014910263231219425,0.010603174603174602,750.0,0.0795793749999802,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,w_euclidean,w_euclidean_l250_k500,w_euclidean,0.00013635622353734415,0.00015852816466983496,0.007947089947089947,500.0,0.0768839170000319,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,w_fpca,w_fpca_l60_k500,w_fpca,0.00014278074095727854,0.00015881697891165683,0.003968253968253968,500.0,0.0760560420000047,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,wz_dtw,wz_dtw_l250_k250,wz_dtw,0.00013856061874172593,0.00015229827788332354,0.007947089947089947,250.0,0.0733747919999814,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,wz_euclidean,wz_euclidean_l250_k100,wz_euclidean,0.0001780641018109413,0.00019542271377737255,0.0,100.0,34.655488582999965,3,min mean annual pinball; tie worst fold; tie configuration_id
+phase_b2_final_v1,wz_fpca,wz_fpca_l125_k100,wz_fpca,0.00017487222032484153,0.00018662832368736477,0.0013227513227513227,100.0,36.11138041699997,3,min mean annual pinball; tie worst fold; tie configuration_id

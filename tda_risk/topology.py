@@ -21,6 +21,7 @@ except ImportError:  # pragma: no cover - handled at runtime
     PersLandscapeApprox = None
 
 from .config import TopologyConfig
+from .features import standardize_window
 from .methods import (
     BaseMethod,
     MethodForecast,
@@ -31,7 +32,7 @@ from .methods import (
     empirical_var_es,
 )
 
-_TOPOLOGY_CACHE_DATA_ID: int | None = None
+_TOPOLOGY_CACHE_DATA_ID: tuple[int, int, tuple[str, ...]] | None = None
 _TOPOLOGY_ARRAY_CACHE: dict[tuple[object, ...], np.ndarray | tuple[int, int]] = {}
 _TOPOLOGY_INPUT_COLUMNS: dict[str, tuple[str, ...]] = {
     "portfolio_only": ("portfolio_return",),
@@ -40,6 +41,7 @@ _TOPOLOGY_INPUT_COLUMNS: dict[str, tuple[str, ...]] = {
 }
 _TOPOLOGY_FEATURE_MODE_TOPK: dict[str, tuple[bool, int]] = {
     "landscape1": (False, 1),
+    "landscape_h0_top1": (True, 1),
     "landscape_h1_top3_concat": (False, 3),
     "landscape_h1_top3_weighted": (False, 3),
     "landscape_h0h1_top1_concat": (True, 1),
@@ -49,9 +51,9 @@ _TOPOLOGY_FEATURE_MODE_TOPK: dict[str, tuple[bool, int]] = {
 
 def _reset_topology_caches_if_needed(data: pd.DataFrame) -> None:
     global _TOPOLOGY_CACHE_DATA_ID
-    data_id = id(data)
-    if _TOPOLOGY_CACHE_DATA_ID != data_id:
-        _TOPOLOGY_CACHE_DATA_ID = data_id
+    data_signature = (id(data), len(data), tuple(str(column) for column in data.columns))
+    if _TOPOLOGY_CACHE_DATA_ID != data_signature:
+        _TOPOLOGY_CACHE_DATA_ID = data_signature
         _TOPOLOGY_ARRAY_CACHE.clear()
 
 
@@ -295,7 +297,7 @@ def _topology_feature_length(feature_mode: str, topology: TopologyConfig) -> int
         use_h0, top_k = _TOPOLOGY_FEATURE_MODE_TOPK[feature_mode]
     except KeyError as exc:
         raise ValueError(f"Unsupported topology feature mode: {feature_mode}") from exc
-    block_count = 2 if use_h0 else 1
+    block_count = 1 if feature_mode == "landscape_h0_top1" else (2 if use_h0 else 1)
     base_length = block_count * top_k * topology.landscape_num_steps
     if feature_mode == "landscape1":
         return base_length + 1  # keep area statistic for legacy finalist mode
@@ -305,13 +307,7 @@ def _topology_feature_length(feature_mode: str, topology: TopologyConfig) -> int
 
 
 def _standardize_topology_window(window: np.ndarray) -> np.ndarray:
-    window_2d = np.asarray(window, dtype=float)
-    if window_2d.ndim == 1:
-        window_2d = window_2d[:, None]
-    mean = window_2d.mean(axis=0, keepdims=True)
-    scale = window_2d.std(axis=0, ddof=0, keepdims=True)
-    scale = np.where(scale > 1e-8, scale, 1.0)
-    return (window_2d - mean) / scale
+    return standardize_window(window)
 
 
 def _get_topology_input_matrix(data: pd.DataFrame, input_mode: str) -> np.ndarray:
@@ -396,6 +392,8 @@ def _window_to_topology_vector(
         weights = raw_weights / raw_weights.sum()
         return np.average(h1_matrix, axis=0, weights=weights)
 
+    if feature_mode == "landscape_h0_top1":
+        return _landscape_topk_block(diagrams[0], topology, hom_deg=0, top_k=top_k)
     if not use_h0:
         return h1_block
 
@@ -552,6 +550,7 @@ def _topology_top_positions(
     training_end: str,
     *,
     use_null: bool,
+    exclusion_radius: int = 0,
 ) -> np.ndarray:
     _reset_topology_caches_if_needed(data)
     tau, embedding_dimension = _select_embedding_parameters(
@@ -573,12 +572,13 @@ def _topology_top_positions(
         alpha,
         max_k,
         use_null,
+        exclusion_radius,
     )
     if cache_key in _TOPOLOGY_ARRAY_CACHE:
         return _TOPOLOGY_ARRAY_CACHE[cache_key]
 
     current_vector, history_vectors, candidate_positions = _state_knn_inputs(
-        data, position, state_columns
+        data, position, state_columns, exclusion_radius=exclusion_radius
     )
     feature_matrix = _get_topology_feature_matrix(
         data,
@@ -624,6 +624,7 @@ class TopologyKNN(BaseMethod):
     alpha: float
     topology: TopologyConfig
     training_end: str
+    exclusion_radius: int = 0
     name: str = "topology_knn"
 
     def forecast(self, data: pd.DataFrame, position: int, risk) -> MethodForecast:
@@ -645,6 +646,7 @@ class TopologyKNN(BaseMethod):
             topology=self.topology,
             training_end=self.training_end,
             use_null=False,
+            exclusion_radius=self.exclusion_radius,
         )
         scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
@@ -662,11 +664,14 @@ class TopologyKNN(BaseMethod):
             scenario_losses.size,
             var,
             es,
+            scenario_losses,
         )
 
 
 @dataclass(frozen=True)
 class TopologyPlaceboKNN(BaseMethod):
+    """Legacy submitted-version placebo; not used in the revised final workflow."""
+
     k: int
     state_columns: tuple[str, ...]
     max_k: int
@@ -676,6 +681,7 @@ class TopologyPlaceboKNN(BaseMethod):
     alpha: float
     topology: TopologyConfig
     training_end: str
+    exclusion_radius: int = 0
     name: str = "topology_placebo_knn"
 
     def forecast(self, data: pd.DataFrame, position: int, risk) -> MethodForecast:
@@ -697,6 +703,7 @@ class TopologyPlaceboKNN(BaseMethod):
             topology=self.topology,
             training_end=self.training_end,
             use_null=True,
+            exclusion_radius=self.exclusion_radius,
         )
         scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
@@ -714,6 +721,7 @@ class TopologyPlaceboKNN(BaseMethod):
             scenario_losses.size,
             var,
             es,
+            scenario_losses,
         )
 
 

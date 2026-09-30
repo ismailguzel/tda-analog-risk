@@ -1,0 +1,7 @@
+exclusion_radius,loss_family,mcs_alpha,bootstrap_reps,block_length,mcs_method,bootstrap_method,n_models,n_dates,retained_count,retained_models,topology_included
+0,pinball_99,0.1,2000,10,R,circular,13,2848,11,fhs_ewma_l094;garch_t_w1500_r20;regime_hs_bins4;rolling_hs_w500;s_euclidean_k250;s_mahalanobis_k500;w_euclidean_l250_k500;w_fpca_l60_k500;wz_dtw_l250_k250;wz_euclidean_l250_k100;wz_fpca_l125_k100,False
+125,pinball_99,0.1,2000,10,R,circular,13,2848,11,fhs_ewma_l094;garch_t_w1500_r20;regime_hs_bins4;rolling_hs_w500;s_euclidean_k250;s_mahalanobis_k500;w_euclidean_l250_k500;w_fpca_l60_k500;wz_dtw_l250_k250;wz_euclidean_l250_k100;wz_fpca_l125_k100,False
+250,pinball_99,0.1,2000,10,R,circular,13,2848,10,fhs_ewma_l094;garch_t_w1500_r20;regime_hs_bins4;rolling_hs_w500;s_euclidean_k250;s_mahalanobis_k500;w_fpca_l60_k500;wz_dtw_l250_k250;wz_euclidean_l250_k100;wz_fpca_l125_k100,False
+0,fz0_975,0.1,2000,10,R,circular,13,2848,7,fhs_ewma_l094;garch_t_w1500_r20;regime_hs_bins4;s_euclidean_k250;s_mahalanobis_k500;w_fpca_l60_k500;wz_dtw_l250_k250,False
+125,fz0_975,0.1,2000,10,R,circular,13,2848,6,fhs_ewma_l094;garch_t_w1500_r20;regime_hs_bins4;s_euclidean_k250;s_mahalanobis_k500;w_fpca_l60_k500,False
+250,fz0_975,0.1,2000,10,R,circular,13,2848,6,fhs_ewma_l094;garch_t_w1500_r20;regime_hs_bins4;s_euclidean_k250;s_mahalanobis_k500;w_fpca_l60_k500,False

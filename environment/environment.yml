@@ -1,0 +1,8 @@
+name: tda-reviewer-revision
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9.6
+  - pip
+  - pip:
+      - -r ../requirements.txt

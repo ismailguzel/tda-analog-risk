@@ -1,0 +1,4 @@
+configuration_id,method,window_length,k,feature_mode,topology_input_mode,alpha,exclusion_radius,status
+gap_hs_w250_r125,gap_hs,250,,,,0,125,diagnostic_only
+topology_h0_only_l125_k100,topology,125,100,landscape_h0_top1,portfolio_only,0,0,diagnostic_only
+topology_h0h1_l125_k100,topology,125,100,landscape_h0h1_top3_concat,portfolio_only,0,0,diagnostic_only
