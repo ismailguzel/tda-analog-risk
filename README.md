@@ -1,123 +1,69 @@
-# tda-analog-risk
+# Clean final revision package
 
-Reproducibility package (code, data, figures, tables) for the work
+This archive contains the frozen panel, valid registries, final results, the
+canonical Python package, tests, the revised manuscript, the latexdiff PDF,
+and the final point-by-point response letter.
 
-> **Persistence Landscapes for Topological Analog Retrieval in Market
-> Risk Forecasting** — İsmail Güzel.
+The default reproduction path never downloads or refreshes external financial
+data. It uses `data/panel_published.csv.gz`; the panel hash, row count, and date
+range are recorded in `revision_config/revision_protocol.json`.
 
-This repository ships the source code, cached input data, precomputed
-pipeline outputs, and figure / table generation scripts needed to
-reproduce every empirical result reported in the manuscript.  The
-manuscript LaTeX itself is maintained separately and is not part of
-this package.
+## Commands
 
----
-
-## Quick reproduction (≈ 5 min)
-
-Regenerates all figures and tables from the cached results:
+From the extracted package root:
 
 ```bash
-# 1. Set up the Python environment
-conda env create -f environment.yml
-conda activate tda-risk
-
-# 2. Rebuild figures and tables
-make figures
-make tables
+python -m pip install -r requirements.txt
+./scripts/reproduce_final.sh --verify-existing
+./scripts/reproduce_final.sh --build-only
+./scripts/reproduce_final.sh --plan
+./scripts/reproduce_final.sh --full
 ```
 
-Outputs land in `figures/` and `results/final_results_package/`.
+`--verify-existing` is the fast integrity check, including the topology
+window-length table, cutoff-tie diagnostic, and every response-letter
+page/line citation. `--build-only` regenerates
+final table fragments, figures, the revised manuscript PDF, the latexdiff PDF,
+and the response-letter PDF. `--plan` prints the complete expensive-analysis
+execution graph without running it. `--full` runs the complete expensive analysis,
+including the locked null design at radii 0, 125, and 250, the validation
+k-sensitivity design at radii 0 and 125, and the two explicitly post hoc
+mechanism diagnostics: a 500-draw age-stratified recency benchmark and a
+100-window temporal-order shuffle analysis.
+The exact installed environment used for the frozen outputs is recorded in
+`environment/revision_pip_freeze.txt`.
 
-## Full reproduction (≈ 2–4 hours)
+The cutoff diagnostic checks the distance at ranks $k$ and $k+1$ for the
+locked evaluation and validation sensitivity catalogs. Exact ties are handled
+in the direct-permutation pilot by a seeded random key independent of candidate
+date and feature origin; the computational uniform-subset implementation targets the
+same tie-invariant exchangeability-based distribution.
 
-Refits all models from raw data:
 
-```bash
-make data            # load cached panel (or refresh from yfinance + FRED)
-make pipeline        # baseline + topology + hybrid backtests
-make figures         # regenerate figures
-make tables          # regenerate tables
-# or just:
-make all
-```
+## Post hoc mechanism diagnostics
 
-`make pipeline` is the heavy step.  Topology feature precomputation
-takes about 25 s; the full backtest with `--n-jobs 4` finishes in
-roughly two hours on a recent laptop.
+Two exploratory diagnostics are shipped separately from the prespecified model
+selection and fixed-panel comparison.  The recency-matched benchmark repeats the
+no-exclusion retrieval comparison 500 times while matching, at every forecast
+date, the topology neighbor counts in seven prespecified age bands.  The
+temporal-order diagnostic preserves each sampled 250-day window's empirical
+marginal distribution but shuffles its order before recomputing the weighted
+$H_1$ landscape.  It uses 100 evenly spaced evaluation windows, 25 shuffles per
+window, and a deterministic 30-point subsample of each delay-coordinate cloud.
+These analyses diagnose mechanism; they are not additional model-selection or
+confirmatory forecast comparisons.
 
----
+## System prerequisites
 
-## Repository layout
+Python 3.9.6 is the documented environment. Install Python packages from
+`requirements.txt`. Document rebuilding additionally requires TeX Live (or an
+equivalent LaTeX distribution) with `pdflatex` and `bibtex` (or `bibtex8` by setting `BIBTEX_BIN=bibtex8`), `latexdiff` with
+Perl, and Poppler's `pdfinfo` and `pdftotext` for verification. The verification
+scripts also require `shasum` or an equivalent SHA-256 utility. These are system tools, not
+Python packages. The default path uses the frozen panel and never downloads
+external financial data.
 
-```
-tda-analog-risk/
-├── tda_risk/                Python package (core models)
-├── scripts/                 Pipeline + figure scripts
-├── data/                    Cached data
-│   ├── panel_cached.csv.gz  Aligned daily panel (yfinance + FRED)
-│   ├── yfinance_raw/        Raw API responses (gzipped)
-│   ├── fred_raw/
-│   └── panel_metadata.json
-├── results/                 Precomputed pipeline outputs
-│   ├── baseline_pipeline/   Classical and analog baselines
-│   ├── topology_pipeline/   Retained topology finalist
-│   ├── topology_fhs_scenario_mixture/  Hybrid model
-│   ├── final_results_package/          Paper-facing tables + formal tests
-│   └── ablation_summaries/  Summary CSVs from appendix ablations
-├── figures/                 Figure PDFs (regenerated by `make figures`)
-├── docs/                    Supplementary documentation
-├── environment.yml          Conda environment (Python 3.11)
-├── requirements.txt         Pip dependency list
-├── Makefile
-└── LICENSE                  MIT
-```
-
----
-
-## Data
-
-| Source       | Series                                                | Provenance |
-|--------------|-------------------------------------------------------|------------|
-| Yahoo Finance | SPY, IEF, ^VIX, EURUSD=X, CL=F                        | `data/yfinance_raw/` |
-| FRED          | DGS2, DGS10, T10Y2Y, DFF, BAMLH0A0HYM2, BAA10Y        | `data/fred_raw/` |
-
-The aligned daily panel (`data/panel_cached.csv.gz`) is the canonical
-input to the pipeline.  The raw API dumps are stored in their original
-form so that any downstream computation can be reproduced offline,
-even if the upstream APIs change.
-
-To refresh the cache from the live APIs:
-
-```bash
-python scripts/fetch_data.py --refresh
-```
-
----
-
-## Reproducibility notes
-
-- **Splits:** training ends 2011-12-31, validation 2012–2014, test
-  2015–2026 (2,848 days).
-- **Topology config:** weighted top-3 $H_1$ landscape, $L=125$,
-  $k=1000$, $\tau=3$, $m=5$, 200-point landscape grid, $\xi=0$
-  (pure topology).
-- **Random seeds:** placebo permutation seed = 42, block-bootstrap
-  seed = 12345.  GARCH and FHS estimators are deterministic given
-  the input panel.
-- **Determinism:** all forecasts in `results/` are deterministic
-  given the cached panel.  Differences across runs would only
-  appear if the upstream data are refreshed (in which case
-  `panel_cached.csv.gz` changes too).
-
----
-
-## License
-
-MIT (see `LICENSE`).
-
----
-
-## Contact
-
-İsmail Güzel — `iguzel@metu.edu.tr`
+The package excludes Git metadata, virtual environments, caches, auxiliary
+LaTeX products, archived/superseded result trees, malformed registries, and
+live-download utilities. See `provenance/result_hash_manifest.sha256` for the
+hashes of the frozen panel and shipped final outputs.

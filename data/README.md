@@ -1,15 +1,15 @@
 # Data
 
-This directory holds the canonical input data for the pipeline.
+This directory holds the canonical, frozen input data for the reviewer
+revision. The revision uses `panel_published.csv.gz`; it does not refresh
+external financial data.
 
 ## Files
 
 | File | Description |
 |---|---|
-| `panel_cached.csv.gz` | Aligned daily panel (yfinance + FRED) used by every pipeline run. Loaded by default through `scripts/fetch_data.py --use-cache`. |
+| `panel_published.csv.gz` | Frozen aligned daily panel used by every final validation and evaluation run. |
 | `panel_metadata.json` | Provenance metadata (date range, tickers, series, column list). |
-| `yfinance_raw/*.csv.gz` | Raw API responses from `yfinance` for each ticker, gzipped. |
-| `fred_raw/*.csv.gz` | Raw API responses from FRED via `pandas-datareader`, gzipped. |
 
 ## Sources
 
@@ -22,18 +22,12 @@ The aligned panel is built in `tda_risk/data.py::build_research_panel`,
 which forward-fills macro series across non-publication days so that
 downstream features are defined on every SPY trading day.
 
-## Refreshing the cache
-
-```bash
-python scripts/fetch_data.py --refresh
-```
-
-This re-pulls every series, regenerates `panel_cached.csv.gz`, and
-overwrites the raw dumps.  The cached version distributed with this
-repository is what the manuscript reports.
+The live-download clients and historical refresh utilities are outside the
+default reproduction path. Reproduction uses the frozen panel and does not
+contact external data providers.
 
 ## Date range
 
-Effective analysis period: **2002-07-22** (IEF inception, the latest
-starting series among the required features) through approximately
-**2026** (depending on when the cache was last refreshed).
+Effective analysis period: **2002-07-30** through **2026-05-01** in the
+frozen panel. Forecasts use the one-step-ahead target convention described in
+`revision_config/revision_protocol.json`.

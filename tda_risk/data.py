@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pandas as pd
-import yfinance as yf
-from pandas_datareader import data as web
 
 from .config import DataConfig
 
@@ -21,6 +19,8 @@ class PanelBuildResult:
 
 
 def fetch_yahoo_panel(config: DataConfig) -> pd.DataFrame:
+    import yfinance as yf
+
     tickers = list(config.yahoo_tickers)
     price_data: dict[str, pd.Series] = {}
     for ticker in tickers:
@@ -45,6 +45,8 @@ def fetch_yahoo_panel(config: DataConfig) -> pd.DataFrame:
 
 
 def fetch_fred_panel(config: DataConfig) -> pd.DataFrame:
+    from pandas_datareader import data as web
+
     frames: list[pd.Series] = []
     for series_name in config.fred_series:
         series = web.DataReader(series_name, "fred", config.start_date).squeeze("columns")

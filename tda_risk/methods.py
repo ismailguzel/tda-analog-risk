@@ -13,9 +13,10 @@ except ImportError:  # pragma: no cover - handled at runtime
     arch_model = None
 
 from .config import BaselineGrid, RiskConfig
+from .features import standardize_window
 
 
-_CACHE_DATA_ID: int | None = None
+_CACHE_DATA_ID: tuple[int, int, tuple[str, ...]] | None = None
 _METHOD_CACHE: dict[tuple[object, ...], np.ndarray] = {}
 _ARRAY_CACHE: dict[tuple[object, ...], np.ndarray] = {}
 
@@ -27,6 +28,7 @@ class MethodForecast:
     scenario_count: int
     var: float
     es: float
+    scenario_losses: np.ndarray | None = None
 
 
 def empirical_var_es(
@@ -55,9 +57,9 @@ class BaseMethod:
 
 def _reset_caches_if_needed(data: pd.DataFrame) -> None:
     global _CACHE_DATA_ID
-    data_id = id(data)
-    if _CACHE_DATA_ID != data_id:
-        _CACHE_DATA_ID = data_id
+    data_signature = (id(data), len(data), tuple(str(column) for column in data.columns))
+    if _CACHE_DATA_ID != data_signature:
+        _CACHE_DATA_ID = data_signature
         _METHOD_CACHE.clear()
         _ARRAY_CACHE.clear()
 
@@ -84,6 +86,33 @@ def _get_z_matrix(data: pd.DataFrame, state_columns: tuple[str, ...]) -> np.ndar
         z_columns = [f"z_{column}" for column in state_columns]
         _ARRAY_CACHE[cache_key] = data.loc[:, z_columns].to_numpy(dtype=float)
     return _ARRAY_CACHE[cache_key]
+
+
+def _get_raw_state_matrix(data: pd.DataFrame, state_columns: tuple[str, ...]) -> np.ndarray:
+    _reset_caches_if_needed(data)
+    cache_key = ("raw_state_matrix", state_columns)
+    if cache_key not in _ARRAY_CACHE:
+        _ARRAY_CACHE[cache_key] = data.loc[:, list(state_columns)].to_numpy(dtype=float)
+    return _ARRAY_CACHE[cache_key]
+
+
+def eligible_candidate_positions(
+    position: int,
+    history_size: int,
+    exclusion_radius: int = 0,
+) -> np.ndarray:
+    """Return historical feature dates eligible for a forecast at ``position``.
+
+    A candidate at ``s`` contributes its following-day target ``L[s+1]``;
+    therefore ``s < position`` is required even when the exclusion radius is 0.
+    With radius ``r``, the boundary is ``s <= position-r-1``.
+    """
+    if exclusion_radius < 0:
+        raise ValueError("exclusion_radius must be non-negative")
+    last_candidate = position - exclusion_radius - 1
+    if last_candidate < 0:
+        return np.array([], dtype=int)
+    return np.arange(min(last_candidate + 1, history_size), dtype=int)
 
 
 def _get_return_window_matrix(data: pd.DataFrame, window_length: int) -> np.ndarray:
@@ -119,41 +148,61 @@ def _state_knn_inputs(
     data: pd.DataFrame,
     position: int,
     state_columns: tuple[str, ...],
+    exclusion_radius: int = 0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    z_matrix = _get_z_matrix(data, state_columns)
-    current_vector = z_matrix[position]
-    if not np.isfinite(current_vector).all():
-        raise ValueError("Current standardized state is not available.")
-
-    history_matrix = z_matrix[:position]
-    candidate_mask = np.isfinite(history_matrix).all(axis=1)
-    candidate_positions = np.flatnonzero(candidate_mask)
-    candidate_positions = candidate_positions[candidate_positions + 1 <= position]
+    raw_matrix = _get_raw_state_matrix(data, state_columns)
+    candidate_positions = eligible_candidate_positions(
+        position, len(data), exclusion_radius=exclusion_radius
+    )
+    candidate_positions = candidate_positions[
+        np.isfinite(raw_matrix[candidate_positions]).all(axis=1)
+    ]
+    current_raw = raw_matrix[position]
+    if not np.isfinite(current_raw).all():
+        raise ValueError("Current raw state is not available.")
     if candidate_positions.size == 0:
         raise ValueError("No analogue candidates are available.")
 
-    history_vectors = z_matrix[candidate_positions]
-    return current_vector, history_vectors, candidate_positions
+    history_vectors = raw_matrix[candidate_positions]
+    mean = history_vectors.mean(axis=0)
+    scale = history_vectors.std(axis=0, ddof=0)
+    scale = np.where(scale > 1e-8, scale, 1.0)
+    return (current_raw - mean) / scale, (history_vectors - mean) / scale, candidate_positions
 
 
 def _window_knn_inputs(
     data: pd.DataFrame,
     position: int,
     window_length: int,
+    exclusion_radius: int = 0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     window_matrix = _get_return_window_matrix(data, window_length)
     current_window = window_matrix[position]
     if not np.isfinite(current_window).all():
         raise ValueError("Current return window is not available.")
 
-    history_windows = window_matrix[:position]
-    candidate_mask = np.isfinite(history_windows).all(axis=1)
-    candidate_positions = np.flatnonzero(candidate_mask)
-    candidate_positions = candidate_positions[candidate_positions + 1 <= position]
+    candidate_positions = eligible_candidate_positions(
+        position, len(data), exclusion_radius=exclusion_radius
+    )
+    candidate_mask = np.isfinite(window_matrix[candidate_positions]).all(axis=1)
+    candidate_positions = candidate_positions[candidate_mask]
     if candidate_positions.size == 0:
         raise ValueError("No analogue candidates are available.")
 
     return current_window, window_matrix[candidate_positions], candidate_positions
+
+
+def _standardized_window_knn_inputs(
+    data: pd.DataFrame,
+    position: int,
+    window_length: int,
+    exclusion_radius: int = 0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    current_window, history_windows, candidate_positions = _window_knn_inputs(
+        data, position, window_length, exclusion_radius=exclusion_radius
+    )
+    standardized_history = np.vstack([standardize_window(window) for window in history_windows])
+    return standardize_window(current_window), standardized_history, candidate_positions
 
 
 def _euclidean_top_positions(
@@ -161,13 +210,14 @@ def _euclidean_top_positions(
     position: int,
     state_columns: tuple[str, ...],
     max_k: int,
+    exclusion_radius: int = 0,
 ) -> np.ndarray:
-    cache_key = ("euclidean_knn", position, state_columns, max_k)
+    cache_key = ("euclidean_knn", position, state_columns, max_k, exclusion_radius)
     if cache_key in _METHOD_CACHE:
         return _METHOD_CACHE[cache_key]
 
     current_vector, history_vectors, candidate_positions = _state_knn_inputs(
-        data, position, state_columns
+        data, position, state_columns, exclusion_radius=exclusion_radius
     )
     distances = np.linalg.norm(history_vectors - current_vector, axis=1)
     top_positions = _select_top_positions(candidate_positions, distances, max_k)
@@ -180,13 +230,14 @@ def _mahalanobis_top_positions(
     position: int,
     state_columns: tuple[str, ...],
     max_k: int,
+    exclusion_radius: int = 0,
 ) -> np.ndarray:
-    cache_key = ("mahalanobis_knn", position, state_columns, max_k)
+    cache_key = ("mahalanobis_knn", position, state_columns, max_k, exclusion_radius)
     if cache_key in _METHOD_CACHE:
         return _METHOD_CACHE[cache_key]
 
     current_vector, history_vectors, candidate_positions = _state_knn_inputs(
-        data, position, state_columns
+        data, position, state_columns, exclusion_radius=exclusion_radius
     )
     covariance = np.cov(history_vectors, rowvar=False, ddof=0)
     covariance = np.atleast_2d(covariance)
@@ -207,13 +258,14 @@ def _dtw_top_positions(
     window_length: int,
     band: int,
     max_k: int,
+    exclusion_radius: int = 0,
 ) -> np.ndarray:
-    cache_key = ("dtw_window", position, window_length, band, max_k)
+    cache_key = ("dtw_window", position, window_length, band, max_k, exclusion_radius)
     if cache_key in _METHOD_CACHE:
         return _METHOD_CACHE[cache_key]
 
     current_window, history_windows, candidate_positions = _window_knn_inputs(
-        data, position, window_length
+        data, position, window_length, exclusion_radius=exclusion_radius
     )
     stacked = np.vstack([current_window, history_windows]).astype(np.double, copy=False)
     distances = np.asarray(
@@ -237,13 +289,14 @@ def _window_euclidean_top_positions(
     position: int,
     window_length: int,
     max_k: int,
+    exclusion_radius: int = 0,
 ) -> np.ndarray:
-    cache_key = ("window_euclidean_knn", position, window_length, max_k)
+    cache_key = ("window_euclidean_knn", position, window_length, max_k, exclusion_radius)
     if cache_key in _METHOD_CACHE:
         return _METHOD_CACHE[cache_key]
 
     current_window, history_windows, candidate_positions = _window_knn_inputs(
-        data, position, window_length
+        data, position, window_length, exclusion_radius=exclusion_radius
     )
     distances = np.linalg.norm(history_windows - current_window, axis=1)
     top_positions = _select_top_positions(candidate_positions, distances, max_k)
@@ -257,13 +310,14 @@ def _fpca_top_positions(
     window_length: int,
     n_components: int,
     max_k: int,
+    exclusion_radius: int = 0,
 ) -> np.ndarray:
-    cache_key = ("fpca_window", position, window_length, n_components, max_k)
+    cache_key = ("fpca_window", position, window_length, n_components, max_k, exclusion_radius)
     if cache_key in _METHOD_CACHE:
         return _METHOD_CACHE[cache_key]
 
     current_window, history_windows, candidate_positions = _window_knn_inputs(
-        data, position, window_length
+        data, position, window_length, exclusion_radius=exclusion_radius
     )
     if history_windows.shape[0] < n_components:
         raise ValueError("Not enough windows are available for FPCA.")
@@ -275,6 +329,85 @@ def _fpca_top_positions(
     order = np.argsort(eigenvalues)[::-1][:n_components]
     components = eigenvectors[:, order]
 
+    history_scores = centered_history @ components
+    current_scores = (current_window - mean_window) @ components
+    distances = np.linalg.norm(history_scores - current_scores, axis=1)
+    top_positions = _select_top_positions(candidate_positions, distances, max_k)
+    _METHOD_CACHE[cache_key] = top_positions
+    return top_positions
+
+
+def _standardized_window_euclidean_top_positions(
+    data: pd.DataFrame,
+    position: int,
+    window_length: int,
+    max_k: int,
+    exclusion_radius: int = 0,
+) -> np.ndarray:
+    cache_key = ("wz_window_euclidean_knn", position, window_length, max_k, exclusion_radius)
+    if cache_key in _METHOD_CACHE:
+        return _METHOD_CACHE[cache_key]
+    current_window, history_windows, candidate_positions = _standardized_window_knn_inputs(
+        data, position, window_length, exclusion_radius=exclusion_radius
+    )
+    distances = np.linalg.norm(history_windows - current_window, axis=1)
+    top_positions = _select_top_positions(candidate_positions, distances, max_k)
+    _METHOD_CACHE[cache_key] = top_positions
+    return top_positions
+
+
+def _standardized_dtw_top_positions(
+    data: pd.DataFrame,
+    position: int,
+    window_length: int,
+    band: int,
+    max_k: int,
+    exclusion_radius: int = 0,
+) -> np.ndarray:
+    cache_key = ("wz_dtw_window", position, window_length, band, max_k, exclusion_radius)
+    if cache_key in _METHOD_CACHE:
+        return _METHOD_CACHE[cache_key]
+    current_window, history_windows, candidate_positions = _standardized_window_knn_inputs(
+        data, position, window_length, exclusion_radius=exclusion_radius
+    )
+    stacked = np.vstack([current_window, history_windows]).astype(np.double, copy=False)
+    distances = np.asarray(
+        dtw.distance_matrix_fast(
+            stacked,
+            block=((0, 1), (1, stacked.shape[0])),
+            compact=True,
+            window=band,
+            parallel=False,
+            use_pruning=True,
+        ),
+        dtype=float,
+    )
+    top_positions = _select_top_positions(candidate_positions, distances, max_k)
+    _METHOD_CACHE[cache_key] = top_positions
+    return top_positions
+
+
+def _standardized_fpca_top_positions(
+    data: pd.DataFrame,
+    position: int,
+    window_length: int,
+    n_components: int,
+    max_k: int,
+    exclusion_radius: int = 0,
+) -> np.ndarray:
+    cache_key = ("wz_fpca_window", position, window_length, n_components, max_k, exclusion_radius)
+    if cache_key in _METHOD_CACHE:
+        return _METHOD_CACHE[cache_key]
+    current_window, history_windows, candidate_positions = _standardized_window_knn_inputs(
+        data, position, window_length, exclusion_radius=exclusion_radius
+    )
+    if history_windows.shape[0] < n_components:
+        raise ValueError("Not enough windows are available for FPCA.")
+    mean_window = history_windows.mean(axis=0)
+    centered_history = history_windows - mean_window
+    covariance = centered_history.T @ centered_history / history_windows.shape[0]
+    eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+    components = eigenvectors[:, np.argsort(eigenvalues)[::-1][:n_components]]
     history_scores = centered_history @ components
     current_scores = (current_window - mean_window) @ components
     distances = np.linalg.norm(history_scores - current_scores, axis=1)
@@ -297,7 +430,29 @@ class RollingHS(BaseMethod):
     def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
         history = data["portfolio_loss"].iloc[: position + 1].dropna().tail(self.window).to_numpy()
         var, es = empirical_var_es(history, risk.var_confidence, risk.es_confidence)
-        return MethodForecast(self.name, {"window": self.window}, history.size, var, es)
+        return MethodForecast(self.name, {"window": self.window}, history.size, var, es, history)
+
+
+@dataclass(frozen=True)
+class GapHS(BaseMethod):
+    """Rolling HS whose history ends before an explicit exclusion gap."""
+
+    window: int
+    exclusion_radius: int = 125
+    name: str = "gap_hs"
+
+    def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
+        end_position = position - self.exclusion_radius
+        history = data["portfolio_loss"].iloc[: max(end_position, 0)].dropna().tail(self.window).to_numpy()
+        var, es = empirical_var_es(history, risk.var_confidence, risk.es_confidence)
+        return MethodForecast(
+            self.name,
+            {"window": self.window, "exclusion_radius": self.exclusion_radius},
+            history.size,
+            var,
+            es,
+            history,
+        )
 
 
 @dataclass(frozen=True)
@@ -312,7 +467,7 @@ class FHSEWMA(BaseMethod):
         sigma_next = float(np.sqrt(self.lambda_ * sigma[-1] ** 2 + (1.0 - self.lambda_) * returns[-1] ** 2))
         scenario_losses = -(sigma_next * residuals)
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
-        return MethodForecast(self.name, {"lambda": self.lambda_}, scenario_losses.size, var, es)
+        return MethodForecast(self.name, {"lambda": self.lambda_}, scenario_losses.size, var, es, scenario_losses)
 
 
 @dataclass(frozen=True)
@@ -332,13 +487,17 @@ class RegimeHS(BaseMethod):
             ).to_numpy()
             historical_labels = np.digitize(historical_values.to_numpy(), quantiles, right=True)
             current_label = int(np.digitize([current_value], quantiles, right=True)[0])
-            matched_index = historical_values.index[historical_labels == current_label]
-            losses = data.loc[matched_index, "portfolio_loss"].dropna().to_numpy()
+            matched_dates = historical_values.index[historical_labels == current_label]
+            matched_positions = data.index.get_indexer(matched_dates)
+            matched_positions = matched_positions[matched_positions >= 0]
+            target_positions = matched_positions + 1
+            target_positions = target_positions[target_positions <= position]
+            losses = data["portfolio_loss"].iloc[target_positions].dropna().to_numpy()
             if losses.size == 0:
                 losses = data["portfolio_loss"].iloc[: position + 1].dropna().to_numpy()
 
         var, es = empirical_var_es(losses, risk.var_confidence, risk.es_confidence)
-        return MethodForecast(self.name, {"regime_bins": self.regime_bins}, losses.size, var, es)
+        return MethodForecast(self.name, {"regime_bins": self.regime_bins}, losses.size, var, es, losses)
 
 
 @dataclass(frozen=True)
@@ -346,13 +505,16 @@ class EuclideanKNN(BaseMethod):
     k: int
     state_columns: tuple[str, ...]
     max_k: int
+    exclusion_radius: int = 0
     name: str = "euclidean_knn"
 
     def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
-        nearest_positions = _euclidean_top_positions(data, position, self.state_columns, self.max_k)
+        nearest_positions = _euclidean_top_positions(
+            data, position, self.state_columns, self.max_k, self.exclusion_radius
+        )
         scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
-        return MethodForecast(self.name, {"k": self.k}, scenario_losses.size, var, es)
+        return MethodForecast(self.name, {"k": self.k}, scenario_losses.size, var, es, scenario_losses)
 
 
 @dataclass(frozen=True)
@@ -361,10 +523,13 @@ class RandomKNN(BaseMethod):
     state_columns: tuple[str, ...]
     max_k: int
     random_seed: int = 20260426
+    exclusion_radius: int = 0
     name: str = "random_knn"
 
     def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
-        _, _, candidate_positions = _state_knn_inputs(data, position, self.state_columns)
+        _, _, candidate_positions = _state_knn_inputs(
+            data, position, self.state_columns, exclusion_radius=self.exclusion_radius
+        )
         if candidate_positions.size == 0:
             raise ValueError("No analogue candidates are available.")
         take = min(self.k, candidate_positions.size)
@@ -372,7 +537,7 @@ class RandomKNN(BaseMethod):
         chosen = rng.choice(candidate_positions, size=take, replace=False)
         scenario_losses = _scenario_losses_from_positions(data, chosen)
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
-        return MethodForecast(self.name, {"k": self.k}, scenario_losses.size, var, es)
+        return MethodForecast(self.name, {"k": self.k}, scenario_losses.size, var, es, scenario_losses)
 
 
 @dataclass(frozen=True)
@@ -380,13 +545,16 @@ class MahalanobisKNN(BaseMethod):
     k: int
     state_columns: tuple[str, ...]
     max_k: int
+    exclusion_radius: int = 0
     name: str = "mahalanobis_knn"
 
     def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
-        nearest_positions = _mahalanobis_top_positions(data, position, self.state_columns, self.max_k)
+        nearest_positions = _mahalanobis_top_positions(
+            data, position, self.state_columns, self.max_k, self.exclusion_radius
+        )
         scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
-        return MethodForecast(self.name, {"k": self.k}, scenario_losses.size, var, es)
+        return MethodForecast(self.name, {"k": self.k}, scenario_losses.size, var, es, scenario_losses)
 
 
 @dataclass(frozen=True)
@@ -395,6 +563,7 @@ class DTWWindow(BaseMethod):
     window_length: int
     max_k: int
     band: int = 10
+    exclusion_radius: int = 0
     name: str = "dtw_window"
 
     def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
@@ -404,6 +573,7 @@ class DTWWindow(BaseMethod):
             window_length=self.window_length,
             band=self.band,
             max_k=self.max_k,
+            exclusion_radius=self.exclusion_radius,
         )
         scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
@@ -413,6 +583,7 @@ class DTWWindow(BaseMethod):
             scenario_losses.size,
             var,
             es,
+            scenario_losses,
         )
 
 
@@ -421,6 +592,7 @@ class WindowEuclideanKNN(BaseMethod):
     k: int
     window_length: int
     max_k: int
+    exclusion_radius: int = 0
     name: str = "window_euclidean_knn"
 
     def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
@@ -429,6 +601,7 @@ class WindowEuclideanKNN(BaseMethod):
             position,
             window_length=self.window_length,
             max_k=self.max_k,
+            exclusion_radius=self.exclusion_radius,
         )
         scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
@@ -438,6 +611,7 @@ class WindowEuclideanKNN(BaseMethod):
             scenario_losses.size,
             var,
             es,
+            scenario_losses,
         )
 
 
@@ -447,6 +621,7 @@ class FPCAWindow(BaseMethod):
     window_length: int
     max_k: int
     n_components: int = 5
+    exclusion_radius: int = 0
     name: str = "fpca_window"
 
     def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
@@ -456,6 +631,7 @@ class FPCAWindow(BaseMethod):
             window_length=self.window_length,
             n_components=self.n_components,
             max_k=self.max_k,
+            exclusion_radius=self.exclusion_radius,
         )
         scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
         var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
@@ -465,7 +641,47 @@ class FPCAWindow(BaseMethod):
             scenario_losses.size,
             var,
             es,
+            scenario_losses,
         )
+
+
+@dataclass(frozen=True)
+class StandardizedWindowEuclideanKNN(WindowEuclideanKNN):
+    name: str = "wz_euclidean_knn"
+
+    def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
+        nearest_positions = _standardized_window_euclidean_top_positions(
+            data, position, self.window_length, self.max_k, self.exclusion_radius
+        )
+        scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
+        var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
+        return MethodForecast(self.name, {"window_length": self.window_length, "k": self.k}, scenario_losses.size, var, es, scenario_losses)
+
+
+@dataclass(frozen=True)
+class StandardizedDTWWindow(DTWWindow):
+    name: str = "wz_dtw_window"
+
+    def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
+        nearest_positions = _standardized_dtw_top_positions(
+            data, position, self.window_length, self.band, self.max_k, self.exclusion_radius
+        )
+        scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
+        var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
+        return MethodForecast(self.name, {"window_length": self.window_length, "k": self.k}, scenario_losses.size, var, es, scenario_losses)
+
+
+@dataclass(frozen=True)
+class StandardizedFPCAWindow(FPCAWindow):
+    name: str = "wz_fpca_window"
+
+    def forecast(self, data: pd.DataFrame, position: int, risk: RiskConfig) -> MethodForecast:
+        nearest_positions = _standardized_fpca_top_positions(
+            data, position, self.window_length, self.n_components, self.max_k, self.exclusion_radius
+        )
+        scenario_losses = _scenario_losses_from_positions(data, nearest_positions[: self.k])
+        var, es = empirical_var_es(scenario_losses, risk.var_confidence, risk.es_confidence)
+        return MethodForecast(self.name, {"window_length": self.window_length, "k": self.k}, scenario_losses.size, var, es, scenario_losses)
 
 
 @dataclass(frozen=True)
@@ -551,6 +767,7 @@ class GARCHStudentT(BaseMethod):
             scenario_losses.size,
             var,
             es,
+            scenario_losses,
         )
 
 
@@ -595,6 +812,18 @@ def build_baseline_methods(grid: BaselineGrid, state_columns: tuple[str, ...]) -
         )
         methods.extend(
             FPCAWindow(k=k, window_length=window_length, max_k=analogue_max_k)
+            for k in grid.euclidean_k
+        )
+        methods.extend(
+            StandardizedWindowEuclideanKNN(k=k, window_length=window_length, max_k=analogue_max_k)
+            for k in grid.euclidean_k
+        )
+        methods.extend(
+            StandardizedDTWWindow(k=k, window_length=window_length, max_k=analogue_max_k)
+            for k in grid.euclidean_k
+        )
+        methods.extend(
+            StandardizedFPCAWindow(k=k, window_length=window_length, max_k=analogue_max_k)
             for k in grid.euclidean_k
         )
     return methods

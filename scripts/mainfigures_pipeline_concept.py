@@ -151,7 +151,7 @@ def plot_pipeline(
                 s=10, edgecolors="none", alpha=0.85, zorder=2)
     ax0.axhline(0, color="0.70", lw=0.5, ls="--")
     ax0.set_xlabel("Within-window day $s$")
-    ax0.set_ylabel("Log-return (%)")
+    ax0.set_ylabel("Return (%)")
     ax0.xaxis.set_major_locator(MaxNLocator(3))
     ax0.yaxis.set_major_locator(MaxNLocator(4))
     ax0.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:.2f}"))

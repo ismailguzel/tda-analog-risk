@@ -1,0 +1,67 @@
+{
+  "workspace_status": "final_analysis_and_writing_frozen",
+  "submitted_code_commit": "3aa185a",
+  "canonical_panel": {
+    "path": "data/panel_published.csv.gz",
+    "sha256": "a5f7bde9b44696dee70b08da59e21afd342b9ef8a7182db034fff8884659e50e",
+    "expected_rows": 5978,
+    "expected_first_date": "2002-07-30",
+    "expected_last_date": "2026-05-01"
+  },
+  "splits": {
+    "warmup_end": "2011-12-31",
+    "validation_start": "2012-01-01",
+    "validation_end": "2014-12-31",
+    "test_start": "2015-01-01",
+    "last_forecast_date": "2026-04-30"
+  },
+  "primary_evaluation": {
+    "target": "VaR_0.99",
+    "consistent_loss": "pinball_0.99",
+    "calibration_tests": [
+      "Kupiec_UC",
+      "Christoffersen_IND",
+      "Christoffersen_CC"
+    ],
+    "comparative_tests": [
+      "paired_Diebold_Mariano",
+      "model_confidence_set"
+    ]
+  },
+  "secondary_evaluation": {
+    "targets": [
+      "VaR_0.975",
+      "ES_0.975"
+    ],
+    "joint_score": "strictly_consistent_Fissler_Ziegel_same_level",
+    "recognized_es_backtest_required": true
+  },
+  "null_controls": {
+    "history_only": true,
+    "minimum_draws_final": 500,
+    "types": [
+      "topology_history_permutation",
+      "uniform_random_retrieval"
+    ],
+    "radii": [
+      0,
+      125,
+      250
+    ],
+    "locked_configuration": "topology_l250_k100",
+    "code_configuration_version": "final-history-only-null-v2"
+  },
+  "exclusion_radii": [
+    0,
+    125,
+    250
+  ],
+  "diagnostic_exclusion_radii": [
+    250
+  ],
+  "rules": {
+    "never_overwrite_submitted_results": true,
+    "test_split_is_fixed_reanalysis_panel_not_pristine_holdout": true,
+    "mixture_is_not_a_primary_result": true
+  }
+}

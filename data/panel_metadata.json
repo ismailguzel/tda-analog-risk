@@ -1,7 +1,7 @@
 {
-  "start_date": "2000-01-01",
-  "end_date": "2026-05-06",
-  "n_dates": 5981,
+  "start_date": "2002-07-30",
+  "end_date": "2026-05-01",
+  "n_dates": 5978,
   "columns": [
     "SPY_adj_close",
     "IEF_adj_close",

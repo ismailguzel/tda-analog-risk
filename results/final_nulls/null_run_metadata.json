@@ -1,0 +1,32 @@
+{
+  "code_configuration_version": "final-history-only-null-v2",
+  "split": "evaluation",
+  "draws_per_control_radius": 500,
+  "controls": [
+    "topology_history_permutation",
+    "uniform_random_retrieval"
+  ],
+  "radii": [
+    0,
+    125,
+    250
+  ],
+  "seed_roots": {
+    "topology_history_permutation": 2026092701,
+    "uniform_random_retrieval": 2026092702
+  },
+  "locked_configuration": "topology_l250_k100",
+  "window_length": 250,
+  "k": 100,
+  "outputs": {
+    "main_null_draws.parquet": {
+      "radii": [
+        0,
+        125,
+        250
+      ],
+      "draws_per_control_radius": 500
+    }
+  },
+  "construction": "Merged from the previously verified radius-0/125 and radius-250 frozen checkpoints; no draws were rerun during this correction pass."
+}

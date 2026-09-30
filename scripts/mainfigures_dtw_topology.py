@@ -434,7 +434,7 @@ def plot_figure(
     ax3.set_ylabel("Landscape value")
     ax3.grid(False)
     ax3.xaxis.set_major_formatter(FormatStrFormatter("%.3f"))
-    ax3.yaxis.set_major_formatter(FormatStrFormatter("%.3f"))
+    ax3.yaxis.set_major_formatter(FormatStrFormatter("%.4f"))
     ax3.legend(loc="upper right")
 
     fig.savefig(output_path)

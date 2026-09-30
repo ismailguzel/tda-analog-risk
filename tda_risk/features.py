@@ -4,6 +4,27 @@ import numpy as np
 import pandas as pd
 
 
+NEAR_ZERO_SCALE = 1e-8
+
+
+def standardize_window(window: np.ndarray, near_zero_scale: float = NEAR_ZERO_SCALE) -> np.ndarray:
+    """Standardize each return-window column using that window only.
+
+    The topology representation uses population standard deviation (``ddof=0``)
+    and maps constant or near-constant columns to unit scale.  Comparators use
+    this helper so their preprocessing is exactly matched to topology.
+    """
+    values = np.asarray(window, dtype=float)
+    was_1d = values.ndim == 1
+    if was_1d:
+        values = values[:, None]
+    mean = values.mean(axis=0, keepdims=True)
+    scale = values.std(axis=0, ddof=0, keepdims=True)
+    scale = np.where(scale > near_zero_scale, scale, 1.0)
+    standardized = (values - mean) / scale
+    return standardized[:, 0] if was_1d else standardized
+
+
 def _rolling_compound_return(series: pd.Series, window: int) -> pd.Series:
     return (1.0 + series).rolling(window=window).apply(np.prod, raw=True) - 1.0
 
