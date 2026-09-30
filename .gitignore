@@ -21,3 +21,11 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Generated logs and LaTeX products
+*.log
+*.aux
+*.fls
+*.fdb_latexmk
+*.out
+*.synctex.gz
