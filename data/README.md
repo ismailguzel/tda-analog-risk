@@ -18,13 +18,14 @@ external financial data.
 - **FRED** (`pandas-datareader`): DGS2, DGS10, T10Y2Y, DFF,
   BAMLH0A0HYM2, BAA10Y.
 
-The aligned panel is built in `tda_risk/data.py::build_research_panel`,
-which forward-fills macro series across non-publication days so that
-downstream features are defined on every SPY trading day.
+The panel aligns every series to the SPY trading calendar and forward-fills
+macro series across non-publication days, so that downstream features are
+defined on every SPY trading day.
 
-The live-download clients and historical refresh utilities are outside the
-default reproduction path. Reproduction uses the frozen panel and does not
-contact external data providers.
+This repository does not contain a download path. Reproduction uses the frozen
+panel and never contacts external data providers. The data module that
+originally built the panel from live sources is kept in the Git history
+(commit `1b824a7`).
 
 ## Date range
 

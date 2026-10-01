@@ -22,10 +22,5 @@ Thumbs.db
 *.swp
 *.swo
 
-# Generated logs and LaTeX products
+# Logs
 *.log
-*.aux
-*.fls
-*.fdb_latexmk
-*.out
-*.synctex.gz

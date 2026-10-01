@@ -1,4 +1,4 @@
-name: tda-reviewer-revision
+name: tda-analog-risk
 channels:
   - conda-forge
 dependencies:

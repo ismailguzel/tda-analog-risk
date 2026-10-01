@@ -27,14 +27,7 @@ SHUFFLE_SEED = 2026093002
 
 
 def _read_parquet_columns(path: Path, columns: list[str]) -> pd.DataFrame:
-    try:
-        return pd.read_parquet(path, columns=columns)
-    except (ImportError, ModuleNotFoundError):
-        from tda_risk.parquet_fallback import MiniParquet
-
-        reader = MiniParquet(path)
-        payload = {column: reader.read_column(column) for column in columns}
-        return pd.DataFrame(payload)
+    return pd.read_parquet(path, columns=columns, engine="pyarrow")
 
 
 def _panel_and_state() -> tuple[pd.DataFrame, np.ndarray]:

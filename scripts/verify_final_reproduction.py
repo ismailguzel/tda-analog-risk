@@ -1,7 +1,8 @@
-"""Verify the shipped frozen inputs, registries, outputs, and documents."""
+"""Verify the shipped frozen inputs, registries, outputs, and figures."""
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -12,8 +13,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import pandas as pd
-
-from tda_risk.parquet_fallback import MiniParquet
 
 
 LOCKED_EVALUATION_NULL_RADII = {0, 125, 250}
@@ -33,13 +32,12 @@ def require(path: Path) -> Path:
 
 
 
+RESULT_MANIFEST = ROOT / "provenance" / "result_hash_manifest.sha256"
+
+
 def read_parquet(path: Path) -> pd.DataFrame:
-    """Read a flat Parquet file with pandas or the packaged fallback reader."""
-    try:
-        return pd.read_parquet(path)
-    except ImportError:
-        parquet = MiniParquet(path)
-        return pd.DataFrame({name: parquet.read_column(name) for name in parquet.columns()})
+    """Read a Parquet file with the pinned pyarrow engine."""
+    return pd.read_parquet(path, engine="pyarrow")
 
 
 def digest(path: Path) -> str:
@@ -51,6 +49,18 @@ def digest(path: Path) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--skip-hash-check",
+        action="store_true",
+        help=(
+            "Check schemas and designs only.  Use after a full rerun: recomputed "
+            "outputs carry fresh timing fields and are not byte-identical to the "
+            "recorded hashes."
+        ),
+    )
+    args = parser.parse_args()
+
     protocol_path = require(ROOT / "revision_config" / "revision_protocol.json")
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
     panel_info = protocol["canonical_panel"]
@@ -221,15 +231,20 @@ def main() -> None:
         fail("Temporal-shuffle diagnostic does not use the declared 30-point cloud subsample")
 
     for path in (
-        ROOT / "manuscript" / "revised_source" / "main.tex",
-        ROOT / "manuscript" / "revised_source" / "main.pdf",
-        ROOT / "manuscript" / "revised_source" / "main_latexdiff.pdf",
-        ROOT / "response" / "final" / "response_to_editor_and_reviewers.tex",
-        ROOT / "response" / "final" / "response_to_editor_and_reviewers.pdf",
-        ROOT / "manuscript" / "revised_source" / "figures" / "fig1_pipeline_concept.pdf",
-        ROOT / "manuscript" / "revised_source" / "figures" / "fig2_mechanism_dtw_topology.pdf",
+        ROOT / "figures" / "fig1_pipeline_concept.pdf",
+        ROOT / "figures" / "fig2_mechanism_dtw_topology.pdf",
+        ROOT / "figures" / "table_mechanism_dtw_topology.csv",
     ):
         require(path)
+
+    # Every frozen input and shipped result must match its recorded hash.
+    entries = [line.split(maxsplit=1) for line in require(RESULT_MANIFEST).read_text().splitlines() if line.strip()]
+    if not args.skip_hash_check:
+        for expected, name in entries:
+            name = name.strip().lstrip("*")
+            actual = digest(require(ROOT / name))
+            if actual != expected:
+                fail(f"Hash mismatch for {name}: {actual} (manifest {expected})")
 
     print("[OK] Frozen panel verified")
     print(f"[OK] Panel SHA-256: {actual_hash}")
@@ -244,7 +259,11 @@ def main() -> None:
         "[OK] Complete-IID cutoff-tie diagnostic verified: "
         f"exact={int(ties.exact_tie_count.sum())}, near={int(ties.near_tie_count.sum())}"
     )
-    print("[OK] Manuscript, response, figure, and table source paths verified")
+    if args.skip_hash_check:
+        print("[SKIP] Hash check skipped (--skip-hash-check)")
+    else:
+        print(f"[OK] {len(entries)} frozen inputs and results match {RESULT_MANIFEST.relative_to(ROOT)}")
+    print("[OK] Explanatory figures present")
 
 
 if __name__ == "__main__":
