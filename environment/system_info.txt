@@ -1,5 +1,4 @@
 Operating system: macOS Darwin 25.6.0, arm64
 Python: 3.9.6
 CPU count: 8
-LaTeX: TeX Live 2025 (pdflatex)
 Reproduction policy: frozen local panel; no external data refresh in the default path
