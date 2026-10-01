@@ -40,7 +40,6 @@ Two controls: topology history-feature permutation and uniform random retrieval.
 | `main_null_draws.parquet` | 500 draws per control and radius on the evaluation period |
 | `main_null_summary.csv` | Distribution of null losses per control and radius |
 | `randomization_tests.csv` | Randomization p-values of the locked topology rule against each control, all radii |
-| `radius250_randomization_tests.csv` | The radius-250 rows of `randomization_tests.csv` (see Notes) |
 | `k_sensitivity_draws.parquet` | Validation k-sensitivity: 250 draws per control, radius (0, 125), and k |
 | `k_sensitivity_summary.csv` | Summary of the k-sensitivity draws |
 | `null_run_metadata.json` | Design, seeds, and construction of the null runs |
@@ -93,5 +92,3 @@ the main results and are reported as post hoc.
   this repository. Its configurations are registered in
   `revision_config/diagnostic_candidate_registry.csv`, and the feature modes
   are implemented in `tda_risk/topology.py`.
-- `final_nulls/radius250_randomization_tests.csv` duplicates the radius-250
-  rows of `randomization_tests.csv` and has no separate generating script.
