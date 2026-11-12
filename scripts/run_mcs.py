@@ -30,7 +30,7 @@ SECONDARY_LOSS = "fz0_975"
 
 
 def locked_configuration_ids() -> list[str]:
-    registry = pd.read_csv(ROOT / "revision_config" / "finalists.csv")
+    registry = pd.read_csv(ROOT / "analysis_config" / "finalists.csv")
     labels = registry["configuration_id"].astype(str).tolist()
     if len(labels) != 13 or len(set(labels)) != 13:
         raise ValueError("finalists.csv must contain exactly 13 unique locked configurations")
@@ -144,7 +144,7 @@ def compute_official_mcs(
 def generate_mcs_outputs(
     frame: pd.DataFrame, out: Path = OUT, *, reps: int = MCS_REPS
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Generate the corrected MCS CSV outputs."""
+    """Write the radius-specific MCS CSV outputs."""
 
     out.mkdir(parents=True, exist_ok=True)
     labels = locked_configuration_ids()
@@ -210,7 +210,7 @@ def main() -> None:
     frame = pd.concat(frames, ignore_index=True)
     primary, secondary = generate_mcs_outputs(frame)
     print(
-        "wrote corrected radius-specific MCS outputs "
+        "wrote radius-specific MCS outputs "
         f"primary={len(primary)} secondary={len(secondary)} "
         f"method={MCS_METHOD} bootstrap={MCS_BOOTSTRAP} reps={MCS_REPS}"
     )

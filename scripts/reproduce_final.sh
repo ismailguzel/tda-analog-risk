@@ -29,7 +29,7 @@ verify_existing() {
 print_plan() {
   cat <<'EOF'
 Canonical full reproduction plan (dry run; no scientific computation executed)
-1. blocked validation over the prespecified candidate universe
+1. blocked validation over the 123-candidate set
 2. locked evaluation for the 13 finalist families at radii 0, 125, and 250
 3. repeated history-only nulls:
    - topology history-feature permutation (conceptual placebo)
@@ -54,7 +54,7 @@ build_only() {
 }
 
 full_pipeline() {
-  "$PYTHON" scripts/run_revision_validation.py
+  "$PYTHON" scripts/run_validation.py
   "$PYTHON" scripts/run_locked_evaluation.py
   "$PYTHON" scripts/run_final_nulls.py
   "$PYTHON" scripts/run_final_inference.py

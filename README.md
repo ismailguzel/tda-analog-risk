@@ -25,7 +25,7 @@ conda activate tda-analog-risk
 ```
 
 The exact environment used to produce the shipped outputs is recorded in
-[`environment/revision_pip_freeze.txt`](environment/revision_pip_freeze.txt).
+[`environment/pip_freeze.txt`](environment/pip_freeze.txt).
 
 ## Verify the shipped results
 
@@ -60,8 +60,8 @@ and `table_mechanism_dtw_topology.csv` to `figures/`.
 ./scripts/reproduce_final.sh --full        # rerun the complete analysis
 ```
 
-`--full` runs, in order: blocked validation over the prespecified candidate
-set, the locked evaluation of 13 finalist families at exclusion radii 0, 125,
+`--full` runs, in order: blocked validation over the 123-candidate set, the
+locked evaluation of 13 finalist families at exclusion radii 0, 125,
 and 250, the repeated history-only null controls (500 draws per control and
 radius), the validation k-sensitivity design, paired proper-loss inference and
 radius-specific model confidence sets, the exclusion and cutoff-tie
@@ -83,7 +83,7 @@ python3 -m pytest
 | `tda_risk/` | Topology features, analog retrieval, null controls, forecasting, scoring, and inference code |
 | `scripts/` | Analysis, verification, and figure-generation entry points |
 | `data/` | Frozen aligned market-data panel and metadata |
-| `revision_config/` | Analysis protocol, candidate and finalist registries, random-seed registry |
+| `analysis_config/` | Analysis protocol, candidate and finalist registries, random-seed registry |
 | `results/` | Shipped analysis outputs |
 | `figures/` | Generated figures |
 | `provenance/` | SHA-256 manifests of the frozen inputs, outputs, and package files |
@@ -94,7 +94,8 @@ python3 -m pytest
 
 The analysis uses `data/panel_published.csv.gz` and does not download or
 refresh external data. Its date splits and forecast conventions are recorded
-in [`revision_config/revision_protocol.json`](revision_config/revision_protocol.json).
-The evaluation period is a fixed reanalysis panel, not a pristine untouched
-holdout. See [`data/README.md`](data/README.md) for data sources and
+in [`analysis_config/analysis_protocol.json`](analysis_config/analysis_protocol.json).
+The evaluation period is a fixed panel, not an untouched holdout: the candidate
+set and the selection criterion were chosen with knowledge of results on it.
+See [`data/README.md`](data/README.md) for data sources and
 [`results/README.md`](results/README.md) for a description of every output.

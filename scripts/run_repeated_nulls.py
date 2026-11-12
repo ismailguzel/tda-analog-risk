@@ -26,8 +26,8 @@ from tda_risk.scoring import fz0_score, pinball_score
 from tda_risk.topology import _get_topology_feature_matrix, clear_topology_caches
 
 
-OUT = ROOT / "results" / "recovery_pilot"
-SEEDS = json.loads((ROOT / "revision_config" / "random_seed_registry.json").read_text())
+OUT = ROOT / "results" / "repeated_nulls"
+SEEDS = json.loads((ROOT / "analysis_config" / "random_seed_registry.json").read_text())
 STATE_COLUMNS = default_pipeline_config().state_columns
 K = 100
 LEVEL = 0.99
@@ -233,8 +233,8 @@ def main() -> None:
     parser.add_argument("--fast-permutation", action="store_true")
     args = parser.parse_args()
     default_seeds = {
-        "topology_history_permutation": SEEDS["recovery"]["topology_history_permutation"],
-        "uniform_random_retrieval": SEEDS["recovery"]["uniform_random_retrieval"],
+        "topology_history_permutation": SEEDS["null_controls"]["topology_history_permutation"],
+        "uniform_random_retrieval": SEEDS["null_controls"]["uniform_random_retrieval"],
     }
     seed = int(args.seed_root if args.seed_root is not None else default_seeds[args.control])
     frame = run(

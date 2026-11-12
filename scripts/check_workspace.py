@@ -10,7 +10,7 @@ import pandas as pd
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL_PATH = REPO_ROOT / "revision_config" / "revision_protocol.json"
+PROTOCOL_PATH = REPO_ROOT / "analysis_config" / "analysis_protocol.json"
 
 
 def sha256(path: Path) -> str:
@@ -82,7 +82,7 @@ def main() -> None:
     if missing_columns:
         fail("Final forecast snapshot is missing columns: " + ", ".join(missing_columns))
 
-    print("[OK] Revision workspace integrity checks passed.")
+    print("[OK] Workspace integrity checks passed.")
     print(f"[OK] Python: {sys.version.split()[0]}")
     print(f"[OK] Canonical panel: {panel_path.relative_to(REPO_ROOT)}")
     print(f"[OK] Panel rows/date range: {len(panel)} / {panel.index.min().date()} to {panel.index.max().date()}")

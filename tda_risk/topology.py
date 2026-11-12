@@ -300,7 +300,7 @@ def _topology_feature_length(feature_mode: str, topology: TopologyConfig) -> int
     block_count = 1 if feature_mode == "landscape_h0_top1" else (2 if use_h0 else 1)
     base_length = block_count * top_k * topology.landscape_num_steps
     if feature_mode == "landscape1":
-        return base_length + 1  # keep area statistic for legacy finalist mode
+        return base_length + 1  # landscape1 carries one additional area statistic
     if feature_mode == "landscape_h1_top3_weighted":
         return topology.landscape_num_steps
     return base_length
@@ -670,7 +670,7 @@ class TopologyKNN(BaseMethod):
 
 @dataclass(frozen=True)
 class TopologyPlaceboKNN(BaseMethod):
-    """Legacy submitted-version placebo; not used in the revised final workflow."""
+    """Topology retrieval with ``use_null=True``; not used by the analysis scripts."""
 
     k: int
     state_columns: tuple[str, ...]

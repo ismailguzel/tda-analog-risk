@@ -1,8 +1,7 @@
 # Data
 
-This directory holds the canonical, frozen input data for the reviewer
-revision. The revision uses `panel_published.csv.gz`; it does not refresh
-external financial data.
+This directory holds the frozen input data. The analysis uses
+`panel_published.csv.gz`; it does not refresh external financial data.
 
 ## Files
 
@@ -23,12 +22,12 @@ macro series across non-publication days, so that downstream features are
 defined on every SPY trading day.
 
 This repository does not contain a download path. Reproduction uses the frozen
-panel and never contacts external data providers. The data module that
-originally built the panel from live sources is kept in the Git history
+panel and never contacts external data providers. The code that built the
+panel from the live sources is in the Git history of this repository
 (commit `1b824a7`).
 
 ## Date range
 
 Effective analysis period: **2002-07-30** through **2026-05-01** in the
 frozen panel. Forecasts use the one-step-ahead target convention described in
-`revision_config/revision_protocol.json`.
+`analysis_config/analysis_protocol.json`.

@@ -1,4 +1,4 @@
-"""Run the two frozen post-hoc diagnostics added before resubmission.
+"""Run the two post hoc mechanism diagnostics.
 
 The analyses do not alter model selection or the fixed evaluation forecasts:
 

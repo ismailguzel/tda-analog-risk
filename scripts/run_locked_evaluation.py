@@ -1,7 +1,7 @@
-"""Run the locked revised finalists on the fixed evaluation panel.
+"""Run the locked finalists on the fixed evaluation panel.
 
-The script never writes to submitted result directories. It stores compact
-forecast rows plus lossless compressed neighbor-index arrays by radius.
+The script stores compact forecast rows plus lossless compressed neighbor-index
+arrays by radius.
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ from tda_risk.topology import TopologyKNN, _topology_top_positions, clear_topolo
 
 
 OUT = ROOT / "results" / "final_evaluation"
-REGISTRY = ROOT / "revision_config" / "finalists.csv"
+REGISTRY = ROOT / "analysis_config" / "finalists.csv"
 STATE_COLUMNS = default_pipeline_config().state_columns
 K_MAX = 1000
 RADIUS_VALUES = (0, 125, 250)
@@ -171,22 +171,6 @@ def main() -> None:
     for radius in tuple(args.radii):
         clear_method_caches()
         clear_topology_caches()
-        archived_path = (
-            ROOT
-            / "archive"
-            / "superseded_results"
-            / "revision_phase3_locked_evaluation"
-            / f"forecasts_radius{radius}.parquet"
-        )
-        if archived_path.exists():
-            archived = pd.read_parquet(archived_path)
-        else:
-            archived_csv = archived_path.with_suffix(".csv")
-            archived = (
-                pd.read_csv(archived_csv, parse_dates=["forecast_date", "realized_date"])
-                if archived_csv.exists()
-                else pd.DataFrame()
-            )
         rows: list[dict[str, object]] = []
         config_ids = registry["configuration_id"].astype(str).tolist()
         if radius in (125, 250):
@@ -194,15 +178,6 @@ def main() -> None:
         for config_id in config_ids:
             if config_id.startswith("gap_hs_w250_r") and config_id != f"gap_hs_w250_r{radius}":
                 continue
-            if not archived.empty:
-                cached = archived[archived["configuration_id"].astype(str).eq(config_id)]
-                if not cached.empty:
-                    rows.extend(cached.to_dict("records"))
-                    print(
-                        f"radius={radius} config={config_id} reused_exact_archived_rows={len(cached)}",
-                        flush=True,
-                    )
-                    continue
             method = parse_config(config_id, radius)
             start = time.perf_counter()
             for position in range(len(data) - 1):

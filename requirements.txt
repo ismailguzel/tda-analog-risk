@@ -1,4 +1,4 @@
-# Direct runtime and verification requirements for the frozen revision.
+# Direct runtime and verification requirements.
 # Live-download clients are intentionally optional: the default reproduction
 # path uses the shipped frozen panel and does not contact external providers.
 numpy==2.0.2

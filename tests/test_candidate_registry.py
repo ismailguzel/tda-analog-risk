@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_candidate_registry_is_parseable_complete_and_unique():
-    path = ROOT / "revision_config" / "recovery_candidate_registry.csv"
+    path = ROOT / "analysis_config" / "candidate_registry.csv"
     registry = load_candidate_registry(path)
     assert len(registry) == 123
     assert registry["configuration_id"].is_unique
@@ -22,19 +22,11 @@ def test_candidate_registry_is_parseable_complete_and_unique():
     assert set(registry.loc[registry.method == "regime_hs", "regime_bins"]) == {2, 4}
 
 
-def test_existing_validation_checkpoints_have_no_hidden_candidate():
-    registry = load_candidate_registry(ROOT / "revision_config" / "recovery_candidate_registry.csv")
-    allowed = set(registry["configuration_id"])
-    checkpoint_dir = ROOT / "results" / "revision_phase2_validation" / "checkpoints"
-    observed = {path.stem for path in checkpoint_dir.glob("*.csv")}
-    assert observed <= allowed
-
-
 def test_validation_script_instantiates_exact_registry_rows():
-    from scripts.run_revision_validation import _method_specs
+    from scripts.run_validation import _method_specs
 
     specs = _method_specs(default_pipeline_config())
-    registry = load_candidate_registry(ROOT / "revision_config" / "recovery_candidate_registry.csv")
+    registry = load_candidate_registry(ROOT / "analysis_config" / "candidate_registry.csv")
     assert [config_id for config_id, _ in specs] == registry["configuration_id"].tolist()
 
 

@@ -1,4 +1,4 @@
-"""Run frozen-panel blocked annual validation for the revised candidate grid."""
+"""Run blocked annual validation of the candidate registry on the frozen panel."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ STATE_COLUMNS = default_pipeline_config().state_columns
 K_VALUES = (100, 250, 500, 750, 1000)
 OUT_DIR = REPO_ROOT / "results" / "final_validation"
 LOG_PATH = REPO_ROOT / "logs" / "final_analysis" / "commands.log"
-REGISTRY_PATH = REPO_ROOT / "revision_config" / "recovery_candidate_registry.csv"
+REGISTRY_PATH = REPO_ROOT / "analysis_config" / "candidate_registry.csv"
 
 
 def pinball_loss(realized: np.ndarray, forecast: np.ndarray, alpha: float = 0.99) -> np.ndarray:
@@ -270,7 +270,6 @@ def _write_finalist_registry(summary: pd.DataFrame) -> None:
         ).iloc[0]
         rows.append(
             {
-                "registry_version": "phase_b2_final_v1",
                 "family": method,
                 "configuration_id": winner["configuration_id"],
                 "method": method,
@@ -284,7 +283,7 @@ def _write_finalist_registry(summary: pd.DataFrame) -> None:
             }
         )
     pd.DataFrame(rows).sort_values("method").to_csv(
-        REPO_ROOT / "revision_config" / "finalists.csv", index=False
+        REPO_ROOT / "analysis_config" / "finalists.csv", index=False
     )
 
 
@@ -295,27 +294,14 @@ def main() -> None:
     _log(f"validation start rows={len(data)} panel={data.index.min().date()}..{data.index.max().date()}")
     clear_method_caches()
     clear_topology_caches()
-    archived_checkpoint_dir = (
-        REPO_ROOT / "archive" / "superseded_results" / "revision_phase2_validation" / "checkpoints"
-    )
-    reused_archived = 0
-    fresh_runs = 0
     all_rows: list[dict[str, object]] = []
     for config_id, method in _method_specs(config):
-        archived_checkpoint = archived_checkpoint_dir / f"{config_id}.csv"
-        if archived_checkpoint.exists():
-            cached = pd.read_csv(archived_checkpoint, parse_dates=["forecast_date", "realized_date"])
-            all_rows.extend(cached.to_dict("records"))
-            reused_archived += 1
-            _log(f"reused exact archived checkpoint {config_id} rows={len(cached)}")
-            continue
         started = time.perf_counter()
         rows = _run_spec(data, config, config_id, method)
         elapsed = time.perf_counter() - started
         for row in rows:
             row["runtime_seconds"] = elapsed
         all_rows.extend(rows)
-        fresh_runs += 1
         _log(f"completed {config_id} rows={len(rows)} seconds={elapsed:.2f}")
     forecasts = pd.DataFrame(all_rows)
     if forecasts.empty:
@@ -350,8 +336,6 @@ def main() -> None:
         "completed_configurations": int(summary.loc[summary["status"].eq("completed"), "configuration_id"].nunique()),
         "infeasible_configurations": int(summary.loc[summary["status"].eq("infeasible"), "configuration_id"].nunique()),
         "forecast_rows": int(len(forecasts)),
-        "reused_exact_archived_checkpoints": reused_archived,
-        "fresh_configurations_run": fresh_runs,
         "validation_folds": ["2012", "2013", "2014"],
     }
     (REPO_ROOT / "logs" / "final_analysis" / "run_summary.json").write_text(

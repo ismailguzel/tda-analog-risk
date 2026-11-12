@@ -190,7 +190,7 @@ class ComparatorAndBoundaryTests(unittest.TestCase):
 
 class RegistryAndDataTests(unittest.TestCase):
     def test_locked_registry_is_explicit_and_unique(self) -> None:
-        path = ROOT / "revision_config" / "finalists.csv"
+        path = ROOT / "analysis_config" / "finalists.csv"
         registry = pd.read_csv(path)
         self.assertEqual(len(registry), 13)
         self.assertEqual(registry["configuration_id"].nunique(), 13)

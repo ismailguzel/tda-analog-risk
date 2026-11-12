@@ -18,13 +18,12 @@ from tda_risk.scoring import fz0_score
 
 
 CONTROLS = ("topology_history_permutation", "uniform_random_retrieval")
-SEEDS = json.loads((ROOT / "revision_config" / "random_seed_registry.json").read_text())["recovery"]
+SEEDS = json.loads((ROOT / "analysis_config" / "random_seed_registry.json").read_text())["null_controls"]
 OUT = ROOT / "results" / "final_nulls"
 K_VALUES = (100, 250, 500, 750, 1000)
 LOCKED_EVALUATION_NULL_RADII = (0, 125, 250)
 VALIDATION_K_SENSITIVITY_RADII = (0, 125)
 DRAW_COUNT = 500
-NULL_CONFIG_VERSION = "final-history-only-null-v2"
 LOCKED_CONFIGURATION = "topology_l250_k100"
 
 
@@ -123,7 +122,6 @@ def main() -> None:
     _summary(main, ["control", "exclusion_radius"]).to_csv(OUT / "main_null_summary.csv", index=False)
     _randomization_tests(main).to_csv(OUT / "randomization_tests.csv", index=False)
     metadata = {
-        "code_configuration_version": NULL_CONFIG_VERSION,
         "split": "evaluation",
         "draws_per_control_radius": DRAW_COUNT,
         "controls": list(CONTROLS),

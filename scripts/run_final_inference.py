@@ -1,4 +1,4 @@
-"""Run the locked Phase B primary and secondary inference suite."""
+"""Run the primary and secondary inference suite on the locked evaluation forecasts."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from tda_risk.scoring import (
     fz0_score,
     kupiec_uc,
 )
-from scripts.run_corrected_mcs import generate_mcs_outputs
+from scripts.run_mcs import generate_mcs_outputs
 
 
 OUT = ROOT / "results" / "final_inference"
@@ -182,15 +182,15 @@ def main() -> None:
     secondary_paired = _paired(frame, secondary=True)
     primary_paired.to_csv(OUT / "paired_primary.csv", index=False)
     secondary_paired.to_csv(OUT / "paired_secondary.csv", index=False)
-    corrected_primary, corrected_secondary = generate_mcs_outputs(frame, OUT)
+    mcs_primary_frame, mcs_secondary_frame = generate_mcs_outputs(frame, OUT)
     duration = var[["exclusion_radius", "configuration_id", "method", "duration_count", "duration_mean", "duration_geometric_stat", "duration_geometric_pvalue"]].copy()
     duration["interpretation"] = "exploratory diagnostic; not a primary acceptance criterion"
     duration.to_csv(OUT / "duration_diagnostic.csv", index=False)
     print(
         f"wrote final inference rows: var={len(var)} "
         f"paired_primary={len(primary_paired)} "
-        f"mcs_primary={len(corrected_primary)} "
-        f"mcs_secondary={len(corrected_secondary)}"
+        f"mcs_primary={len(mcs_primary_frame)} "
+        f"mcs_secondary={len(mcs_secondary_frame)}"
     )
 
 

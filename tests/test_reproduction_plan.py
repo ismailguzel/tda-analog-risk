@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_protocol_declares_all_final_null_radii() -> None:
     protocol = json.loads(
-        (ROOT / "revision_config" / "revision_protocol.json").read_text(encoding="utf-8")
+        (ROOT / "analysis_config" / "analysis_protocol.json").read_text(encoding="utf-8")
     )
     assert protocol["null_controls"]["radii"] == [0, 125, 250]
     assert protocol["null_controls"]["minimum_draws_final"] == 500

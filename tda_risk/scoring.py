@@ -1,4 +1,4 @@
-"""Scoring and backtesting utilities used by the revision audit."""
+"""Scoring and backtesting utilities."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ def fz0_score(
 ) -> np.ndarray:
     """Positive-loss FZ0 score for jointly forecast VaR and ES.
 
-    This is the orientation used throughout the revision: smaller is better.
+    This is the orientation used throughout: smaller is better.
     The score is defined only where all inputs are finite and ES is positive;
     invalid rows are returned as NaN so callers can report their sample size.
     """
@@ -112,8 +112,8 @@ def duration_geometric_test(exceedances: np.ndarray, level: float) -> tuple[floa
 
     The test uses uncensored intervals between observed exceedances and compares
     the MLE geometric success probability with ``p=1-level``.  The reported
-    reference distribution is chi-square(1); the finite-sample caveat is
-    recorded in the methods report because no duration correction is applied.
+    reference distribution is chi-square(1); no finite-sample duration
+    correction is applied.
     """
     durations = exceedance_durations(exceedances)
     if durations.size == 0:
@@ -141,8 +141,8 @@ def acerbi_szekely_z2(
     For positive losses the Z2 contribution is
     ``loss * I(loss > VaR) / ((1-level) * ES) - 1``.  Under a calibrated
     forecast its mean is zero.  We use the recognized Z2 moment with a
-    studentized asymptotic normal reference; the report states that this is
-    not a small-sample or bootstrap correction.
+    studentized asymptotic normal reference; this is not a small-sample or
+    bootstrap correction.
     """
     y = np.asarray(realized, dtype=float)
     q = np.asarray(var, dtype=float)

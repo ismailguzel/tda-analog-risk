@@ -61,7 +61,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    protocol_path = require(ROOT / "revision_config" / "revision_protocol.json")
+    protocol_path = require(ROOT / "analysis_config" / "analysis_protocol.json")
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
     panel_info = protocol["canonical_panel"]
     panel_path = require(ROOT / panel_info["path"])
@@ -78,9 +78,9 @@ def main() -> None:
         fail("Frozen panel last date does not match the protocol")
 
     registry_paths = [
-        ROOT / "revision_config" / "finalists.csv",
-        ROOT / "revision_config" / "recovery_candidate_registry.csv",
-        ROOT / "revision_config" / "diagnostic_candidate_registry.csv",
+        ROOT / "analysis_config" / "finalists.csv",
+        ROOT / "analysis_config" / "candidate_registry.csv",
+        ROOT / "analysis_config" / "diagnostic_candidate_registry.csv",
     ]
     for path in registry_paths:
         frame = pd.read_csv(require(path))
@@ -88,9 +88,9 @@ def main() -> None:
             fail(f"Registry is empty: {path.relative_to(ROOT)}")
         if "configuration_id" not in frame.columns:
             fail(f"Registry lacks configuration_id: {path.relative_to(ROOT)}")
-    if len(pd.read_csv(ROOT / "revision_config" / "finalists.csv")) != 13:
+    if len(pd.read_csv(ROOT / "analysis_config" / "finalists.csv")) != 13:
         fail("Locked finalist registry does not contain 13 families")
-    json.loads(require(ROOT / "revision_config" / "random_seed_registry.json").read_text())
+    json.loads(require(ROOT / "analysis_config" / "random_seed_registry.json").read_text())
 
     evaluation_required = {
         "forecast_date", "realized_date", "realized_loss", "VaR_99", "VaR_975",

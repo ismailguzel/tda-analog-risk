@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
-from scripts.run_corrected_mcs import (
+from scripts.run_mcs import (
     MCS_METHOD,
     MCS_BOOTSTRAP,
     compute_official_mcs,
@@ -70,7 +70,7 @@ def test_radius_specific_source_means_are_not_mixed() -> None:
     assert all(abs(value - mixed_secondary) > 1e-4 for value in secondary_means)
 
 
-def test_corrected_outputs_have_one_radius_and_thirteen_locked_labels() -> None:
+def test_mcs_outputs_have_one_radius_and_thirteen_locked_labels() -> None:
     labels = set(locked_configuration_ids())
     for name in ("mcs_primary_radius_specific.csv", "mcs_secondary_radius_specific.csv"):
         result = pd.read_csv(ROOT / "results" / "final_inference" / name)

@@ -1,6 +1,4 @@
 {
-  "workspace_status": "final_analysis_and_writing_frozen",
-  "submitted_code_commit": "3aa185a",
   "canonical_panel": {
     "path": "data/panel_published.csv.gz",
     "sha256": "a5f7bde9b44696dee70b08da59e21afd342b9ef8a7182db034fff8884659e50e",
@@ -48,8 +46,7 @@
       125,
       250
     ],
-    "locked_configuration": "topology_l250_k100",
-    "code_configuration_version": "final-history-only-null-v2"
+    "locked_configuration": "topology_l250_k100"
   },
   "exclusion_radii": [
     0,
@@ -60,8 +57,6 @@
     250
   ],
   "rules": {
-    "never_overwrite_submitted_results": true,
-    "test_split_is_fixed_reanalysis_panel_not_pristine_holdout": true,
-    "mixture_is_not_a_primary_result": true
+    "evaluation_panel_is_not_an_untouched_holdout": true
   }
 }

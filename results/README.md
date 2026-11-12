@@ -2,7 +2,7 @@
 
 Shipped outputs of the final analysis. All files are produced from the frozen
 panel `data/panel_published.csv.gz` under the protocol in
-`revision_config/revision_protocol.json`, and every file below is hashed in
+`analysis_config/analysis_protocol.json`, and every file below is hashed in
 `provenance/result_hash_manifest.sha256`. Exclusion radii are 0, 125, and 250
 trading days; the locked topology configuration is `topology_l250_k100`.
 
@@ -11,11 +11,11 @@ trading days; the locked topology configuration is `topology_l250_k100`.
 
 ## `final_validation/` — blocked validation (2012–2014)
 
-Produced by `scripts/run_revision_validation.py`.
+Produced by `scripts/run_validation.py`.
 
 | File | Contents |
 |---|---|
-| `all_configurations.parquet` | Daily validation forecasts for every prespecified candidate |
+| `all_configurations.parquet` | Daily validation forecasts for every candidate |
 | `validation_fold_summary.csv` | Per-candidate, per-fold pinball loss, exceedance rate, and run time |
 | `selection_stability.csv` | Rank of each candidate by fold, with mean, worst, and dispersion of ranks |
 | `topology_window_sensitivity.csv` | Best k for each window length L = 60, 125, 250 (`scripts/build_window_sensitivity_table.py`) |
@@ -46,7 +46,7 @@ Two controls: topology history-feature permutation and uniform random retrieval.
 
 ## `final_inference/` — paired tests, model confidence sets, backtests
 
-Produced by `scripts/run_final_inference.py`; the MCS files by `scripts/run_corrected_mcs.py`.
+Produced by `scripts/run_final_inference.py`; the MCS files by `scripts/run_mcs.py`.
 
 | File | Contents |
 |---|---|
@@ -90,5 +90,5 @@ the main results and are reported as post hoc.
 
 - `final_validation/topology_homology_ablation.csv` has no generating script in
   this repository. Its configurations are registered in
-  `revision_config/diagnostic_candidate_registry.csv`, and the feature modes
+  `analysis_config/diagnostic_candidate_registry.csv`, and the feature modes
   are implemented in `tda_risk/topology.py`.

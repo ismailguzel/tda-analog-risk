@@ -10,6 +10,6 @@ if [[ -z "${PYTHONPYCACHEPREFIX:-}" ]]; then
 	PYTHONPYCACHEPREFIX="$(mktemp -d "${TMPDIR:-/tmp}/tda-pycache.XXXXXX")"
 	export PYTHONPYCACHEPREFIX
 fi
-"$PYTHON_BIN" scripts/check_revision_workspace.py
+"$PYTHON_BIN" scripts/check_workspace.py
 "$PYTHON_BIN" -m compileall -q tda_risk scripts
 printf '%s\n' '[OK] Python sources compile.'
